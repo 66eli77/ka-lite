@@ -11,6 +11,10 @@ a:hover {
     color: #2F92A5;
 }*/
 
+.facility, .video, .languages, .device {
+    width:100%;
+}
+
 #top-header {
     height: 60px;
     position: relative;
@@ -142,7 +146,7 @@ a:hover {
     text-align: center;
     border-top-left-radius: 5px;
     border-top-right-radius: 17px;
-    height: 87px;
+    height: 86px;
 }
 .teach-nav li a:hover {
     color: #5C8547;
@@ -170,48 +174,48 @@ a:hover {
 
 .active-tab {
     background-color: #E9F1E4; 
-    height: 87px;
+    height: 86px;
     color: #5C8547;
 }
 .reports {
     background: url("../../images/distributed/reports-icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 .reports:hover, .reports-active {
     background: url("../../images/distributed/reports-active-icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 .playlist {
     background: url("../../images/distributed/playlist-icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 .playlist:hover, .playlists-active {
     background: url("../../images/distributed/playlist-active-icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 .exams {
     background: url("../../images/distributed/exam-icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 .exams:hover, .exams-active {
     background: url("../../images/distributed/exam-active-icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 .learn {
     background: url("../../images/distributed/learn-icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 .learn:hover, .learn-active {
     background: url("../../images/distributed/learn-active-icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 /********* End Sub-Navigation bar **********/
 
@@ -237,7 +241,7 @@ a:hover {
     width: 110px;
     text-align: center;
     font-weight: bold;
-    display: inline-block !important;
+    display: inline-flex !important;
     margin: 0 2px -4px 0;
 }
 .manage-nav li a {
@@ -282,47 +286,47 @@ a:hover {
 }
 .active-tab {
     background-color: #E9F1E4;
-    height: 87px;
+    height: 86px;
 }
 .users {
     background: url("../../images/distributed/users-icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 .users:hover, .users-active {
     background: url("../../images/distributed/users-active-icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 .video {
     background: url("../../images/distributed/videos_icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 .video:hover, .video-active {
     background: url("../../images/distributed/videos_active_icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 .languages {
     background: url("../../images/distributed/language_icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 .languages:hover, .languages-active {
     background: url("../../images/distributed/language_active_icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 .facility {
     background: url("../../images/distributed/facility-icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 .facility:hover, .facility-active {
     background: url("../../images/distributed/facility-active-icon.png") no-repeat;
     background-position: center 7px;
-    height: 87px;
+    height: 86px;
 }
 /********* End "Admin" Sub-Navigation bar **********/
 
