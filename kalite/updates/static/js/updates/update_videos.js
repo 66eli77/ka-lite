@@ -85,6 +85,97 @@ var video_callbacks = {
 
 $(function() {
 
+    //eli
+    var Content_Tree_Model = Backbone.Model.extend({
+
+    });
+
+    var Videos_for_Language_Model = Backbone.Model.extend({
+        default: function(){
+            return {
+                language: "eee",
+            };
+        },
+
+        initialize: function(){
+            if ($("#download_language_selector option").length > 1) {
+                $("#language_choice_titlebar a").attr("onclick", "show_languddage_selector();");
+            }
+        }
+    });
+
+    var Help_for_Downloading_Model = Backbone.Model.extend({
+
+    });
+
+    var UpdateVideosView = Backbone.View.extend({
+        updateVideosTemplate: _.template($('#update-videos-template').html()),
+
+        events: {
+            "click #language_choice_titlebar" : "show_language_selector",
+        },
+
+        show_language_selector: function() {
+            $("#download_language_selector").show();
+            $("#language_choice_titlebar a").hide();
+        },
+
+        initialize: function(){
+            this.render();
+        },
+
+        render: function(){
+            this.$el.html(this.updateVideosTemplate());
+            return this;
+        },
+    });
+    var updateVideoApp = new UpdateVideosView({
+        el: $("#updateVideosContainer"),
+    });
+
+
+    var HelpDownloadingVideosView = Backbone.View.extend({
+        helpDownloadingVideosTemplate: _.template($('#help-downloading-videos-template').html()),
+
+        events: {
+
+        },
+
+        initialize: function(){
+            this.render();
+        },
+
+        render: function(){
+            this.$el.html(this.helpDownloadingVideosTemplate());
+            return this;
+        },
+    });
+    var HelpDownloadingVideosApp = new HelpDownloadingVideosView({
+        el: $("#helpDownloadingVideosContainer"),
+    });
+
+
+    var ContentTreeView = Backbone.View.extend({
+        contenTreeTemplate: _.template($('#content-tree-template').html()),
+
+        events: {
+
+        },
+
+        initialize: function(){
+            this.render();
+        },
+
+        render: function(){
+            this.$el.html(this.contenTreeTemplate());
+            return this;
+        },
+    });
+    var ContentTreeApp = new ContentTreeView({
+        el: $("#contentTreeContainer"),
+    });
+    //eli
+
     doRequest(URL_GET_ANNOTATED_TOPIC_TREE, {})
         .success(function(treeData) {
 
@@ -145,7 +236,7 @@ $(function() {
                     }
                 },
                 onPostInit: function() {
-                    with_online_status("server", function(server_is_online) {
+                    toggle_state("server", function(server_is_online) {
                         // We assume the distributed server is offline; if it's online, then we enable buttons that only work with internet.
                         // Best to assume offline, as online check returns much faster than offline check.
                         if(server_is_online){
@@ -275,22 +366,12 @@ $(function() {
         ga_track("send", "event", "update", "click-retry-download", "Retry Download");
     });
 
-
-    if ($("#download_language_selector option").length > 1) {
-        $("#language_choice_titlebar a").attr("onclick", "show_language_selector();");
-    }
-
     $("#download_language_selector").change(function() {
          var lang_code = $("#download_language_selector option:selected")[0].value;
          window.location.href = setGetParam(window.location.href, "lang", lang_code);
     });
     // end onload functions
 });
-
-function show_language_selector() {
-    $("#download_language_selector").show();
-    $("#language_choice_titlebar a").hide();
-}
 
 /* script functions for doing stuff with the topic tree*/
 function unselectAllNodes() {

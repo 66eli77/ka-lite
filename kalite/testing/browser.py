@@ -139,7 +139,7 @@ class BrowserTestCase(KALiteTestCase):
         if getattr(settings, 'HEADLESS', None):
             self.browser_list = ['PhantomJS']
         else:
-            self.browser_list = ['Firefox', 'Chrome', 'Ie', 'Opera']
+            self.browser_list = ['Chrome', 'Firefox', 'Chrome', 'Ie', 'Opera']
         super(BrowserTestCase, self).__init__(*args, **kwargs)
 
     def setUp(self):

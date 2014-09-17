@@ -62,7 +62,7 @@ a:hover {
 }
 
 .nav-subheader a:hover {
-    color: #2F92A5;
+    color: #2 F92A5;
 }
 
 .nav-subheader > a, .nav-subheader > span {
@@ -120,14 +120,14 @@ a:hover {
     width: 110px;
     text-align: center;
     font-weight: bold;
-    display: inline-block;
+    display: inline-flex !important;
     margin: 0 2px -4px 0;
 
 }
 .teach-nav li div {
     position: relative;
-    top: 35px;
-    left: 11px;
+    top: 15px;
+    left: 0px;
 }
 .teach-nav li:hover {
     background-color: white;
@@ -151,6 +151,7 @@ a:hover {
 .teach-nav li a:hover {
     color: #5C8547;
 }
+
 .teach-nav li img {
     height: 40px;
     width: auto;
@@ -163,13 +164,6 @@ a:hover {
 }
 .link-width {
     width: 90px;
-}
-.active-nav {
-    color: #5C8547;
-    background-color: white;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 16px;
-    font-weight: bold;           
 }
 
 .active-tab {
@@ -185,7 +179,7 @@ a:hover {
 .reports:hover, .reports-active {
     background: url("../../images/distributed/reports-active-icon.png") no-repeat;
     background-position: center 7px;
-    height: 86px;
+    height: 88px;
 }
 .playlist {
     background: url("../../images/distributed/playlist-icon.png") no-repeat;
@@ -195,7 +189,7 @@ a:hover {
 .playlist:hover, .playlists-active {
     background: url("../../images/distributed/playlist-active-icon.png") no-repeat;
     background-position: center 7px;
-    height: 86px;
+    height: 88px;
 }
 .exams {
     background: url("../../images/distributed/exam-icon.png") no-repeat;
@@ -205,7 +199,17 @@ a:hover {
 .exams:hover, .exams-active {
     background: url("../../images/distributed/exam-active-icon.png") no-repeat;
     background-position: center 7px;
+    height: 88px;
+}
+.units {
+    background: url("../../images/distributed/exam-icon.png") no-repeat;
+    background-position: center 7px;
     height: 86px;
+}
+.units:hover, .units-active {
+    background: url("../../images/distributed/exam-active-icon.png") no-repeat;
+    background-position: center 7px;
+    height: 88px;
 }
 .learn {
     background: url("../../images/distributed/learn-icon.png") no-repeat;
@@ -215,7 +219,7 @@ a:hover {
 .learn:hover, .learn-active {
     background: url("../../images/distributed/learn-active-icon.png") no-repeat;
     background-position: center 7px;
-    height: 86px;
+    height: 88px;
 }
 /********* End Sub-Navigation bar **********/
 
@@ -286,7 +290,7 @@ a:hover {
 }
 .active-tab {
     background-color: #E9F1E4;
-    height: 86px;
+    height: 88px;
 }
 .users {
     background: url("../../images/distributed/users-icon.png") no-repeat;
