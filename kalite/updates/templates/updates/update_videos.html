@@ -29,10 +29,22 @@
         var defaultLanguage = "{{ default_language }}";
     </script>
 
-    <script type="text/javascript" src="{% static 'js/updates/underscore.js' %}"></script>
-    <script type="text/javascript" src="{% static 'js/updates/backbone.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/updates/update_videos.js' %}"></script>
     <script type="text/javascript" src="{% static 'js/updates/update_languages.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/updates/views.js' %}"></script>
+    <script src="{% url 'handlebars_templates' module_name='videos_update' %}"></script>
+
+
+    <script>
+
+        window.statusModel.loaded.then(function() {
+            $(function() {
+                window.helper_view = new HelpDownloadingVideosView();
+                $('#updateVideosContainer').append(window.helper_view.el);
+            });
+        });
+
+    </script>
 {% endblock headjs %}
 
 {% block ga_setmetrics %}
@@ -94,7 +106,7 @@
             </div>
         </div>
         <div style="clear: both;"></div>
-        
+
         <div id="contentTreeContainer"></div>
     </script>
 
