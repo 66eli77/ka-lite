@@ -92,15 +92,15 @@ $(function() {
 
     var Videos_for_Language_Model = Backbone.Model.extend({
         default: function(){
-            return {
-                language: "eee",
-            };
+  //          return {
+    //            language: "eee",
+      //      };
         },
 
         initialize: function(){
-            if ($("#download_language_selector option").length > 1) {
-                $("#language_choice_titlebar a").attr("onclick", "show_languddage_selector();");
-            }
+    //        if ($("#download_language_selector option").length > 1) {
+      //          $("#language_choice_titlebar a").attr("onclick", "show_languddage_selector();");
+        //    }
         }
     });
 
@@ -112,7 +112,7 @@ $(function() {
         updateVideosTemplate: _.template($('#update-videos-template').html()),
 
         events: {
-            "click #language_choice_titlebar" : "show_language_selector",
+            "click #language_chosen" : "show_language_selector",
         },
 
         show_language_selector: function() {

@@ -51,7 +51,7 @@
                 {% if num_language_choices == 1 %}
                     {% blocktrans with lang_name=current_language_name %}Videos for language {{ lang_name }}{% endblocktrans %}
                 {% else %}
-                    {% blocktrans with lang_name=current_language_name %}Videos for language <a href="#">{{ lang_name }}</a>{% endblocktrans %}
+                    {% blocktrans with lang_name=current_language_name %}Videos for language <a id="language_chosen" href="#">{{ lang_name }}</a>{% endblocktrans %}
                 {% endif %}
                 </span>
                 <select id="download_language_selector">
@@ -78,6 +78,7 @@
             </button>
         </div>
 
+        <div id="helpDownloadingVideosContainer"></div>
 
         <div style="clear: both;"></div>
 
@@ -93,6 +94,8 @@
             </div>
         </div>
         <div style="clear: both;"></div>
+        
+        <div id="contentTreeContainer"></div>
     </script>
 
 <!-- Templates -->
@@ -116,7 +119,5 @@
     </script>
 
     <div id="updateVideosContainer"></div>
-    <div id="helpDownloadingVideosContainer"></div>
-    <div id="contentTreeContainer"></div>
 
 {% endblock content %}
