@@ -1,0 +1,54 @@
+<div class="download-actions vertical-shadow">
+    <h4 class="videos">
+        <span id="language_choice_titlebar">
+
+        {{#ifcond num_language_choices "===" 1 }}
+            {% blocktrans with lang_name=current_language_name %}Videos for language {{ lang_name }}{% endblocktrans %}
+        {{/if}}
+        {{#ifcond num_language_choices "!==" 1 }}
+            {% blocktrans with lang_name=current_language_name %}Videos for language <a id="language_chosen" href="#">{{ lang_name }}</a>{% endblocktrans %}
+        {{/if}}
+        
+        </span>
+        <select id="download_language_selector">
+        {% for lang_code, lang_meta in language_choices.iteritems %}
+            <option value="{{ lang_code }}" {{#ifcond lang_code == current_language }}selected{{/if}}>
+                {{ lang_code|get_language_name }}
+            </option>
+        {% endfor %}
+        </select>
+    </h4>
+
+    <h5 id="download-legend-unselected" class="button_text">
+        {{_ "Please select videos to download (below)" }}
+    </h5>
+
+    <button id="download-videos" type="button" class="enable-when-server-online">
+        <span id="download-videos-text" class="new-video-count"></span>
+    </button>
+
+    <button id="delete-videos" type="button">
+        <div id="modal_dialog">
+        </div>
+        <span id="delete-videos-text" class="old-video-count"></span>
+    </button>
+</div>
+
+<div id="helpDownloadingVideosContainer"></div>
+
+<div style="clear: both;"></div>
+
+<div>
+    <!-- note: id must match the "updates" app process name -->
+    <div id="videodownload-progressbar">
+        {% include "updates/progress-bar.html" %}
+        <button id="retry-video-download" type="button">{{_ "Video download error... click to retry" }}</button>
+    </div>
+
+    <div>
+        <button class="btn btn-default btn-xs" id="cancel-download" type="button">{{_ "Cancel Video Downloads" }}</button>
+    </div>
+</div>
+<div style="clear: both;"></div>
+
+<div id="contentTreeContainer"></div>
