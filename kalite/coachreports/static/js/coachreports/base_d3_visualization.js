@@ -30,10 +30,11 @@ function plotJsonData(chart_div, base_url, props) {
 
     // Get the data
     var url = base_url + "?" + $.param(props, true); 
-
+    console.log("rrrrr: ", url);
     clear_messages();
     doRequest(url)
         .success(function(json) {
+            console.log("Sofia Brown: ", json);
             $("#loading").text(sprintf(gettext("Drawing %(xaxis_name)s versus %(yaxis_name)s"), {
                 xaxis_name: stat2name(props["xaxis"]),
                 yaxis_name: stat2name(props["yaxis"])

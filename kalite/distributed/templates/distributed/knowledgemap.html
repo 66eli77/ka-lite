@@ -6,8 +6,7 @@
 
 {% block headcss %}{{ block.super }}
     <link rel='stylesheet' type='text/css' href='{% static "css/distributed/kmap_editor.css" %}' />
-    <link rel='stylesheet' type='text/css' href='{% static "css/leaflet.css" %}' />
-    <link rel="stylesheet" type="text/css" href="{% static 'perseus/ke/css/khan-exercise.css' True %}">
+    <!-- <link rel="stylesheet" type="text/css" href="{% static 'khan-exercises/css/khan-exercise.css' True %}"> -->
 {% endblock headcss %}
 
 {% block headjs %}{{ block.super }}
@@ -37,32 +36,692 @@
         var TOPIC_DATA_URLS = {
             Domains: '{{ data_url }}/map_domains.json',
             Subjects: '{{ data_url }}/map_subjects.json',
-            Topics: '{{ data_url }}/map_topics.json',
+            Topics: '{{ data_url }}/topics.json',
             Tutorials: '{{ data_url }}/map_tutorials.json',
             Exercises: '{{ data_url }}/exercises.json'
         }
+        var ALL_TOPICS_URL = '{{ topics_url }}';
     </script>
-    <script src="{% static 'js/distributed/map/models.js' %}"></script>
-    <script src="{% static 'js/distributed/map/views.js' %}"></script>
-    <script src="{% static 'js/distributed/topics/router.js' %}"></script>
-    <script src="{% static 'js/distributed/map/router.js' %}"></script>
-    <script type="text/javascript">
-        $(function() {
-            window.channel_router = new MapChannelRouter({default_channel: "{{ channel }}"})
-            Backbone.history.start({pushState: true, root: "{% url 'exercise_dashboard' %}"});
-        });
-    </script>
+
+<!-- need to move to separated css file later -->
+    <style>
+      .node circle {
+        cursor: pointer;
+       /* stroke: #3182bd;
+        stroke-width: 1.5px;*/
+      }
+
+      .node text {
+        font: 10px sans-serif;
+        pointer-events: none;
+        text-anchor: middle;
+      }
+
+      line.link {
+        fill: none;
+        stroke: #9ecae1;
+        stroke-width: 3px;
+      }
+
+      line.link2 {
+        fill: none;
+        stroke: #cae33a;
+        stroke-width: 3px;
+      }
+
+      .content_label_background{ 
+        fill: black;
+      }
+    </style>
 {% endblock headjs %}
 
 {% block content %}
 
-    <div id="map-container">
-    </div>
-    <div id="overlay">
-        <a href="#" class="close btn btn-danger">X</a>
-        <div id="content-area">
-            <div class="content"></div>
-        </div>
-    </div>
-    <div id="fade"></div>
+<script src="http://d3js.org/d3.v3.min.js"></script>
+<script>
+
+
+var user_exercises_json;
+var url = "/api/coachreports/KnowledgeMapExerciselog/?"; 
+doRequest(url)
+        .success(function(user_json) {
+          // $("body").append(JSON.stringify(json));
+          user_exercises_json = user_json;
+          console.log("user_exercises_json: ", user_exercises_json);
+        // });
+
+//create the hashtatble 
+var user_hashtable = {};
+for (var key in user_exercises_json["objects"]) {
+  user_hashtable[user_exercises_json["objects"][key].exercise_id] = user_exercises_json["objects"][key];
+  // console.log("try1: ", user_exercises_json["objects"][key].streak_progress);
+}
+// console.log("try1: ", user_hashtable["fractions_cut_and_copy_2"].exercise_id);
+
+// var color_scheme_dic = {
+//   "sifi_scarlet": "#94424f", 
+//   "econ_orange": "#c78d46",
+//   "artist_red": "#cf5044",
+//   "cyber_green": "#699c52",
+//   "test_purple": "#644172",
+//   "partner_emerald": "#49a88f",
+//   "college_pink": "#e89cb9",
+//   "math_blue": "#1c758a"
+// };
+
+var color_scheme_array = ["#1c758a","#94424f","#c78d46","#cf5044","#699c52","#644172","#49a88f","#e89cb9"];
+
+var subject_list = [];
+
+var width = 2000,
+  height = 1000,
+  root;
+
+// width = document.getElementById('content-container').offsetWidth;
+// height = document.getElementById('content-container').offsetHeight;
+width = $(document).width(); 
+height = $(document).height();
+// console.log("www ", width, " hhh ", height);
+
+var force = d3.layout.force()
+  .linkDistance(90)
+  // .linkStrength(7)
+  .charge(-840)
+  // .chargeDistance(100)
+  .gravity(.12)
+  // .friction(0.9)
+  // .theta(.0001)
+  // .alpha(0)
+  .size([width, height])
+  .on("tick", tick);
+
+// var zoomListener = d3.behavior.zoom()
+//   .scaleExtent([0.1, 3])
+//   .on("zoom", zoomHandler);
+
+var svg = d3.select("kmap").append("svg")
+  .attr("width", width)
+  .attr("height",height)
+  .call(d3.behavior.zoom().scaleExtent([0.1, 3]).on("zoom", zoomHandler))
+  .append("g");
+
+var label_tanslate;
+var label_scale;
+function zoomHandler() {
+  label_tanslate = d3.event.translate;
+  label_scale = d3.event.scale;
+  // console.log("eeee", d3.event.translate);
+  svg.attr("transform", "translate(" + d3.event.translate + ")scale(" + d3.event.scale + ")");
+}
+
+// zoomListener(svg);
+
+var link = svg.selectAll(".link"),
+    node = svg.selectAll(".node");
+
+var initialized =false;
+// var nodes;
+
+d3.json(sprintf(TOPIC_DATA_URLS.Topics, {channel_name: "khan"}), function(error, json) {
+    root = json;
+
+    for(var c in root.children){
+      subject_list[c] = root.children[c].slug;
+    }
+// console.log("subject_list: ", subject_list);
+    console.log("topics_json: ", root);
+    update();
+});
+
+function update() {
+  if(initialized){
+    // var nodes = flatten(root);
+    var nodes = flatten(root);
+    // console.log("eli flatten", nodes);
+  }else{
+    initialized = true;
+    var nodes = initial(root);
+
+    // console.log("eli init nodes", nodes);
+  }
+  console.log("updated nodes", nodes);
+    nodes.pop(); //remove the root node since we don't want to render it.
+    var links = d3.layout.tree().links(nodes);
+
+    // Restart the force layout.
+    force
+        .nodes(nodes)
+        .links(links)
+        .start();
+
+    // Update links.
+    link = link.data(links, function(d) { return d.target.unique_id; });
+    console.log("update_link: ", link);
+    // console.log("update_exit: ", link.exit());
+    link.exit().remove();
+
+    // console.log("update_enter: ", link.enter());
+    // link.enter().insert("line", ".node")
+    // .attr("class", "link2");
+    link.enter().insert("line", ".node")
+    .style("stroke-width", "2.5px")
+    .style("stroke", colorline);
+
+    // Update nodes.
+    node = node.data(nodes, function(d) { 
+      return d.unique_id; 
+    });
+
+    // console.log("nodenode: ", node);
+
+    node.exit().remove();
+
+    var nodeEnter = node.enter().append("g")
+        .attr("class", "node")
+        // .on("dblclick", click)
+        .on("click", click)
+        .on("mouseover", mouseover)
+        .on("mouseout", mouseout)
+        .call(force.drag);
+
+    nodeEnter.append("circle")
+        // .attr("r", function(d) { return Math.sqrt(d.size) / 10 || 4.5; });
+        .attr("r", function(d) { 
+          if(d.kind !== "Topic"){
+          return d.size || 10; }});
+
+    nodeEnter.append("rect")
+        // .attr("r", function(d) { return Math.sqrt(d.size) / 10 || 4.5; });
+        .attr("width", function(d) { 
+          if(d.kind == "Topic"){
+           if(d.title.length * 8 > 150){
+              return d.title.length * 8/2 + 6;
+            }else{
+              return d.title.length * 8;
+            }}})
+        .attr("height", function(d) { 
+          if(d.kind == "Topic"){
+            if(d.title.length * 8 > 150){
+              return 50;
+            }else{
+              return 30;
+            }}})
+        .attr("x",function(d) { 
+          if(d.kind == "Topic"){
+            if(d.title.length * 8 > 150){
+              return d.title.length * -8/4 - 3;
+            }else{
+              return d.title.length * -8/2;
+            }}})
+        .attr("y", -17)
+        .attr("rx", function(d) { 
+          if(d.kind == "Topic"){
+          return 10; }})
+        .attr("ry", function(d) { 
+          if(d.kind == "Topic"){
+          return 10; }});
+
+    node.select("rect")
+        .attr("stroke-width", 4)
+        .attr("stroke", colornode_stroke)
+        .style("fill", colornode_fill);
+
+    nodeEnter.append("text")
+        .attr("dy", ".25em")
+        // .attr("text-anchor", "middle")
+        .style("fill", init_text_fill)
+        .style("font-size", "14")
+        .text(function(d) { 
+          if(d.kind == "Topic"){
+            return d.title; 
+          }
+        })
+        .call(wrap, 130);
+
+    nodeEnter.append("text")
+        .attr("dy", function(d) { 
+          if(d.title.length > 10){
+            return "-0.15em"; 
+          }else{
+            return "0.35em";
+          }
+        })
+        .style("font-size", "16")
+        .style("font-weight", "bold")
+        .style("fill", "white")
+        .text(function(d) { 
+          if(d.kind == "Subject"){
+            return d.title + " " + "%" + d.progress.toFixed(2); 
+          }
+        })
+        .call(wrap, 90);
+
+    node.select("circle")
+        .attr("stroke-width", 4)
+        .attr("stroke", colornode_stroke)
+        .style("fill", colornode_fill);
+}
+
+//this wrap function probably not flexable enough for longer string.
+function wrap(text, width) {
+  text.each(function() {
+    var text = d3.select(this),
+        words = text.text().split(/\s+/).reverse(),
+        word,
+        line = [],
+        lineNumber = 0,
+        lineHeight = 1.1, // ems
+        y = text.attr("y"),
+        dy = parseFloat(text.attr("dy")),
+        tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+    while (word = words.pop()) {
+      if(word.indexOf('%') !== -1){
+        line.push(word);
+        tspan.text(line.join(" "));
+    console.log("leng", text.text().length);
+        if(text.text().length > 15){
+          line.pop();
+          tspan.text(line.join(" "));
+          line = [word];
+          tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + -1.15 + "em").text(word);
+        }else{
+          line.pop();
+          tspan.text(line.join(" "));
+          line = [word];
+          tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + 0.1 + "em").text(word);
+        }
+      }else{
+        line.push(word);
+        tspan.text(line.join(" "));
+      }
+      if (tspan.node().getComputedTextLength() > width) {
+        line.pop();
+        tspan.text(line.join(" "));
+        line = [word];
+        tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+      }
+    }
+  });
+}
+
+// function wrap(text, width) {
+//   text.each(function() {
+//     var text = d3.select(this),
+//         words = text.text().split(/\s+/).reverse(),
+//         // words = text.text().split(" ").reverse(),
+//         word,
+//         line = [],
+//         lineNumber = 0,
+//         lineHeight = 1.1, // ems
+//         y = text.attr("y"),
+//         dy = parseFloat(text.attr("dy")),
+//         tspan = text.text(null).append("tspan").attr("x", 0).attr("y", y).attr("dy", dy + "em");
+//     while (word = words.pop()) {
+//       line.push(word);
+//       tspan.text(line.join(" "));
+//       if (tspan.node().getComputedTextLength() > width) {
+//         line.pop();
+//         tspan.text(line.join(" "));
+//         line = [word];
+//         tspan = text.append("tspan").attr("x", 0).attr("y", y).attr("dy", ++lineNumber * lineHeight + dy + "em").text(word);
+//       }
+//     }
+//   });
+// }
+
+function tick() {
+    link.attr("x1", function(d) { return d.source.x; })
+        .attr("y1", function(d) { return d.source.y; })
+        .attr("x2", function(d) { return d.target.x; })
+        .attr("y2", function(d) { return d.target.y; });
+
+  node.attr("transform", function(d) { return "translate(" + d.x + "," + d.y + ")"; });
+}
+
+// function color(d) {
+//     return d._children &&  d._children[0] != null ? "#3182bd" //    collapsed package
+//         : d.children ? "#c6dbef" // expanded package
+//         : d.progress == 100 && !d.children ? "#A14545" 
+//         : d.progress == 0 && !d.children ? "#C9C9C9"
+//         : "#fd8d3c"; // leaf node
+// }
+function init_text_fill(d) {
+    var subject_domain = d.path.split("/")[1];
+    var color_code = subject_list.indexOf(subject_domain);
+    var assigned_color = color_scheme_array[color_code];
+    // console.log("mycolor: ", d3.interpolateRgb(assigned_color, "#FFFFFF"));
+    // console.log("whywhy:", d);
+    return d._children != null &&  d._children[0] != null ? "white" //    collapsed package
+        : d.children ? assigned_color // expanded package
+        // : d.progress == 100 && !d.children ? d3_color.brighter(1)  // completed leaf node
+        // : d.progress == 0 && !d.children ? "white"  // fresh leaf node
+        // : d.kind != "Subject" ? d3_color.brighter(1.9) // inprogress leaf node
+        : assigned_color;
+}
+function text_fill(d) {
+    var subject_domain = d.path.split("/")[1];
+    var color_code = subject_list.indexOf(subject_domain);
+    var assigned_color = color_scheme_array[color_code];
+    // console.log("mycolor: ", d3.interpolateRgb(assigned_color, "#FFFFFF"));
+    // console.log("whywhy:", d);
+    return d._children != null &&  d._children[0] != null ? assigned_color //    collapsed package
+        : d.children ? "white" // expanded package
+        // : d.progress == 100 && !d.children ? d3_color.brighter(1)  // completed leaf node
+        // : d.progress == 0 && !d.children ? "white"  // fresh leaf node
+        // : d.kind != "Subject" ? d3_color.brighter(1.9) // inprogress leaf node
+        : assigned_color;
+}
+
+function colornode_fill(d) {
+    var subject_domain = d.path.split("/")[1];
+    var color_code = subject_list.indexOf(subject_domain);
+    var assigned_color = color_scheme_array[color_code];
+    var d3_color = d3.rgb(assigned_color);
+    // console.log("mycolor: ", d3.interpolateRgb(assigned_color, "#FFFFFF"));
+    return d._children &&  d._children[0] != null ? assigned_color //    collapsed package
+        : d.children && d.kind != "Subject" ? "white" // expanded package
+        : d.progress == 100 && !d.children ? assigned_color // completed leaf node
+        : d.progress == 0 && !d.children ? "white"  // fresh leaf node
+        : d.kind != "Subject" ? d3_color.brighter(1.9) // inprogress leaf node
+        : assigned_color;
+}
+
+function colornode_stroke(d) {
+    var subject_domain = d.path.split("/")[1];
+    var color_code = subject_list.indexOf(subject_domain);
+    var assigned_color = color_scheme_array[color_code];
+    // console.log("mycolor: ", d3.interpolateRgb(assigned_color, "#FFFFFF"));
+    return d._children &&  d._children[0] != null ? null //    collapsed package
+        : d.children && d.kind != "Subject" ? assigned_color// expanded package
+        : d.progress == 100 && !d.children ? null // completed leaf node
+        : d.progress == 0 && !d.children ? assigned_color  // fresh leaf node
+        : d.kind != "Subject" ? assigned_color // inprogress leaf node
+        : assigned_color;
+}
+
+function colorline(d) {
+  // console.log("lliine:", d.source);
+  var subject_domain = d.source.path.split("/")[1];
+  var color_code = subject_list.indexOf(subject_domain);
+  var assigned_color = color_scheme_array[color_code];
+  return assigned_color;
+}
+
+function mouseover(d) {
+  // console.log("hover!", d);
+  // if(d.kind == "Exercise" || d.kind == "Video"){
+  //   d3.select(this).select("text")
+  //       .attr("dy", "-1.35em")
+  //       .style("font-size", "12")
+  //       .style("font-weight", "lighter")
+  //       .style("fill", "black")
+  //       .text(d.title); 
+  // }
+
+  if(d.kind == "Exercise" || d.kind == "Video"){
+    var currentx = d3.transform(d3.select(this).attr("transform")).translate[0]-d.title.length*3.5;
+    // var currentx = d3.event.translate;
+    var currenty = d3.transform(d3.select(this).attr("transform")).translate[1];
+    var title_leng = d.title.length;
+    d3.select("svg").insert("rect")
+        .attr("x", currentx - 10)
+        .attr("y", currenty - 45)
+        .attr("class", "content_label_background")
+        // .attr("width", function(d) { 
+        //    if(title_leng * 8 > 150){
+        //       return title_leng * 8/2 + 6;
+        //     }else{
+        //       return title_leng * 8;
+        //     }})
+        // .attr("height", function(d) { 
+        //     if(title_leng * 8 > 150){
+        //       return 50;
+        //     }else{
+        //       return 30;
+        //     }})
+        .attr("width", title_leng*9)
+        .attr("height", 30)
+        .attr("rx", 6)
+        .attr("ry", 6)
+        // .attr("dy", "-6.35em")
+        .style("fill-opacity", 0);
+
+        console.log("eeee ", label_tanslate, " eeee ", label_scale);
+
+    d3.select(".content_label_background")
+        .transition()
+        .duration(350)
+        .style("fill-opacity", 1)
+        .ease("in");
+
+    d3.select("svg").insert("text")
+        .attr("x", currentx)
+        .attr("y", currenty)
+        .attr("class", "content_label_title")
+        // .attr("dx", "-5.35em")
+        .attr("dy", "-1.35em")
+        .style("font-size", "18")
+        .style("font-weight", "normal")
+        .style("fill", "white")
+        .text(d.title); 
+  }
+  // update position as zoom and pan occured
+  if(label_tanslate != null || label_scale != null){
+      d3.select(".content_label_background")
+          .attr("transform", "translate(" + label_tanslate + ")scale(" + label_scale + ")");
+      d3.select(".content_label_title")
+          .attr("transform", "translate(" + label_tanslate + ")scale(" + label_scale + ")");
+      // d3.select(".content_label_background")
+      //     .attr("dy", "-1.5em")
+      //     .attr("width", (title_leng*9)/label_scale)
+      //     .attr("height", 30/label_scale);
+  }
+}
+
+function mouseout(d){
+  if(d.kind == "Exercise" || d.kind == "Video"){
+    d3.select(".content_label_title").remove();
+    d3.select(".content_label_background").remove();
+    // $(".mymy").remove();
+  }
+}
+
+// Toggle children on click.
+function click(d) {
+  d.fixed = true;
+  setTimeout(function(){ d.fixed = false; }, 3000);
+if (d3.event.defaultPrevented) return; // ignore drag
+    console.log("this.node: ", d);
+  console.log("this.progress: ", d.progress);
+  // var dd = d.children.length + d._children.length;
+  // console.log("length: ", dd);
+  var update_color = text_fill(d);
+  console.log("lalal", update_color);
+  d3.select(this).select("text")
+    .style("fill", update_color);
+
+  console.log("tttt", d3.select(this).select("text"));
+
+
+    // if (d3.event.defaultPrevented) return; // ignore drag
+    if (d.children) {
+      if(d._children && d._children[0] != null){
+        console.log("eli _children not null");
+        for(var i in d._children){
+          d.children.push(d._children[i]);
+        }
+        d._children = null;
+      }else{
+        console.log("eli _children is null");
+        d._children = d.children;
+        d.children = null;
+    }
+  } else {
+      console.log("eli else");
+      if(!d._children){
+          // location.href = "http://www.google.com/#q="+ d.title;
+          location.href = "http://localhost:9011/learn/"+ d.path;
+      }
+      d.children = d._children;
+      d._children = null;
+  }
+  update();
+}
+
+function initial(root) {
+  //search for repeated nodes #0
+    // var eli_string;
+    // var eli_dic = [];
+  //search for repeated nodes #0
+    var nodes = [], index = 0;
+    function process_topics(node){
+      if(node.children) node.children.forEach(process_topics);
+      if(node.children){
+        var topic_progress = 0;
+        var unfold_flag = false;
+        var inprogress_node_encounter = 0;
+        var fresh_node_encounter = 0;
+        var complete_node_encounter = 0;
+        for(var i in node.children){
+
+          //because same exercise can appear under different topics, use the topic tile + exercise tile to define a unique id
+          // node.children[i]["unique_id"] = node.id + node.children[i].title;
+          // node.children[i]["unique_id"] = ++index;
+          node.children[i]["unique_id"] = node.children[i].path + node.id + node.children[i].title + node.children[i].kind;
+
+
+        //search for repeated nodes #1
+          // eli_dic.push(node.children[i].path+"@"+node.children[i].title+"@@"+node.children[i].kind+"@@@"+node.id);
+
+
+          if(node.children[i].progress){
+            var progress_val = node.children[i].progress;
+          }else{
+            var progress_val = 0;
+          }
+        
+          var match_hashtable = user_hashtable[node.children[i].id];
+          if(match_hashtable){
+            progress_val = match_hashtable.streak_progress;
+            // console.log("match_hashtable 1: ", match_hashtable.exercise_id);
+          }
+          //update topics.json's end node with personal streak_progress
+          if(!node.children[i].children){
+            node.children[i]["progress"] = progress_val;
+          }
+
+          topic_progress += progress_val;
+
+          if(!node.children[i].children){
+            if(progress_val == 100){
+              complete_node_encounter++;
+            }else if(progress_val == 0){
+              fresh_node_encounter++;
+            }else{
+              inprogress_node_encounter++;
+            }
+          }
+        }
+        if(inprogress_node_encounter > 0){
+          unfold_flag = true;
+        }else if(complete_node_encounter != 0 && fresh_node_encounter != 0){
+          unfold_flag = true;
+        }
+        var total_progress = node.children.length * 100;
+
+        node["progress"] = topic_progress / total_progress * 100;
+
+        node["unfold_flag"] = unfold_flag;
+        // if(node.progress != 0){
+        //   console.log("nodeeeee: ", node.title, node.progress);
+        // }
+      }
+    }
+    process_topics(root);
+
+
+  //search for repeated nodes #2
+    // for(var dicc in eli_dic){
+    //   var ccoo = 0;
+    //   for(var yy in eli_dic){
+    //     if(eli_dic[dicc] == eli_dic[yy]){
+    //       ccoo++;
+    //     }
+    //   }
+    //   if(ccoo > 1){
+    //     console.log("repeated : ", eli_dic[dicc]);
+    //     // console.log("repeated : ", ccoo);
+    //   }
+    // }
+
+
+
+    //prepare the subject nodes
+    for(var y in root.children){
+      root.children[y]["size"] = 50;   //make subject nodes larger
+      root.children[y]["kind"] = "Subject";   //update the kind
+      //prevent 100 or 0 progress subject node not shown #1
+      if(root.children[y].progress == 100 || root.children[y].progress == 0){
+        nodes.push(root.children[y]);
+      }
+    }
+
+    // console.log("processed: ", root);
+
+    function recurse(node) {
+      // console.log("recursion 1: ", node.title);
+      if (node.children) node.children.forEach(recurse);
+      if(node.children){
+        if(node.unfold_flag){
+          nodes.push(node)
+          for(var t in node.children){
+            nodes.push(node.children[t]);
+          }
+        }else if(node.progress != 0 && node.progress != 100){
+          nodes.push(node);
+        }
+      }
+      // if (node.children && node.progress > 0 && node.progress < 100){
+      //  nodes.push(node);
+      // }
+
+      // console.log("recursion 2: ", node.title);
+      if (node.children && !node.unfold_flag){
+        // node._children = null;
+        node["_children"] = [];
+        for(var h = node.children.length -1; h >= 0 ; h--){
+          if(node.children[h].progress == 0 || node.children[h].progress == 100){
+            node._children.push(node.children[h]);
+            node.children.splice(h, 1);
+          }
+        }
+      }
+    }
+  recurse(root);
+
+  //prevent 100 progress subject node not shown #2
+  if(root._children){
+    root.children = root.children.concat(root._children);
+    root._children = null;
+  }
+  //prevent 100 progress subject node not shown #2
+  return nodes;
+}
+
+// Returns a list of all nodes under the root.
+function flatten(root) {
+    var nodes = [], i = 0;
+
+    function recurse(node) {
+      if (node.children) node.children.forEach(recurse);
+      if (!node.id) node.id = ++i;
+      nodes.push(node);
+    }
+
+    recurse(root);
+    return nodes;
+}
+});
+
+</script>
 {% endblock content %}

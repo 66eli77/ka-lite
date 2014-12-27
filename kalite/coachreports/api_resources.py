@@ -219,11 +219,11 @@ class TimelineReportExerciseResource(ExerciseSummaryResource):
     class Meta:
         queryset = ExerciseLog.objects.all()
         resource_name = 'TimelineReportExerciselog'
-        excludes = ['attempts_before_completion', 
-            'complete', 'counter', 'attempts', 'signed_version', 'signature', 'resource_uri', 'id', 'language', 
-            'resource_uri', 'user', 'streak_progress', 'points', 'completion_counter', 'completion_timestamp',
-            'exercise_id', 'mastered', 'struggling', 'deleted'
-            ]
+        # excludes = ['attempts_before_completion', 
+        #     'complete', 'counter', 'attempts', 'signed_version', 'signature', 'resource_uri', 'id', 'language', 
+        #     'resource_uri', 'user', 'streak_progress', 'points', 'completion_counter', 'completion_timestamp',
+        #     'exercise_id', 'mastered', 'struggling', 'deleted'
+        #     ]
         authorization = UserObjectsOnlyAuthorization()
 
     user_info = []
@@ -293,3 +293,43 @@ class TimelineReportExerciseResource(ExerciseSummaryResource):
 
         self.user_info.reverse()
         return filtered_logs
+
+class KnowledgeMapExerciseResource(ExerciseSummaryResource):
+
+    class Meta:
+        queryset = ExerciseLog.objects.all()
+        resource_name = 'KnowledgeMapExerciselog'
+        # excludes = ['attempts_before_completion', 
+        #     'complete', 'counter', 'attempts', 'signed_version', 'signature', 'id', 'language', 
+        #     'resource_uri', 'user', 'points', 'completion_counter', 'completion_timestamp',
+        #     'exercise_id', 'mastered', 'struggling', 'deleted'
+        #     ]
+        excludes = ['attempts_before_completion', 
+            'complete', 'counter', 'attempts', 'language', 'signed_version',
+            'points', 'completion_counter', 'completion_timestamp',
+            'mastered', 'struggling', 'deleted'
+            ]
+        authorization = UserObjectsOnlyAuthorization()
+
+    # user_info = []
+    # total_timestamps = 0
+    # def dehydrate(self, bundle): 
+    #     userinfo = self.user_info.pop()
+    #     bundle.data['total_timestamps'] = self.total_timestamps
+    #     bundle.data['user_name'] = userinfo.get('user_name')
+    #     bundle.data['exercises'] = userinfo.get('exercises')
+    #     return bundle
+
+    def get_object_list(self, request):
+        return super(ExerciseSummaryResource, self).get_object_list(request).filter(
+            completion_timestamp__gte='2014-11-25', 
+            completion_timestamp__lte='2014-12-22',
+            # user="19bf8439722252ff854c2b9126f86e8f")
+            # Guan Wong:
+            # user__exact="19bf8439722252ff854c2b9126f86e8f")
+            # Sofia Brown:
+            user__exact="5596a405a92154b2a25e753127963a43")
+
+    def obj_get_list(self, bundle, **kwargs):
+        exercise_logs = self.get_object_list(bundle.request)
+        return exercise_logs
