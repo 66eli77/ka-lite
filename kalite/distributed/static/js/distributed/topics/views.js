@@ -96,6 +96,10 @@ window.SidebarView = BaseView.extend({
         this.listenTo(this.topic_node_view, "hideSidebar", this.hide_sidebar);
         this.listenTo(this.topic_node_view, "showSidebar", this.show_sidebar);
 
+        this.recommandIconView = new RecommandIconView({
+            state_model: this.state_model
+        });
+
         this.$('.sidebar-content').append(this.topic_node_view.el);
 
         this.set_sidebar_back();
@@ -606,5 +610,22 @@ window.TopicContainerOuterView = BaseView.extend({
 
     show_sidebar: function() {
         this.trigger("showSidebar");
+    }
+});
+
+window.RecommandIconView = BaseView.extend({
+    el: ".fade",
+
+    initialize: function(options) {
+        this.state_model = options.state_model;
+        this.listenTo(this.state_model, "change:open", this.update_recommand_icon_visibility);
+    },
+
+    update_recommand_icon_visibility: function(){
+        if(this.state_model.get("open")){
+            this.$el.html('<a href="http://google.com"><img src="/data/khan/images/recom_icon.png" style="position: fixed; bottom: 0; right: 0; margin-right: 20px; margin-bottom: 20px; height: 20%;"></a>');
+        }else{
+            // this.$el.html('<a href="http://google.com"><img src="pic_mountain.jpg" style="float:left;"></a>');
+        }
     }
 });
