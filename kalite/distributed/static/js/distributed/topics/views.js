@@ -100,6 +100,10 @@ window.SidebarView = BaseView.extend({
             state_model: this.state_model
         });
 
+        this.userStatusView = new UserStatusView({
+            state_model: this.state_model
+        });
+
         this.$('.sidebar-content').append(this.topic_node_view.el);
 
         this.set_sidebar_back();
@@ -630,8 +634,46 @@ window.RecommandIconView = BaseView.extend({
         }
     }
 });
+
+window.UserStatusView = BaseView.extend({
+    el: ".myfade",
+
+    initialize: function(options) {
+        this.$el.append('<a id="user_logo" href="http://google.com"><img src="/data/khan/images/user_logo.png" style="position:fixed; top:0; right:0; margin-right:30px; margin-top:20px; height:13%;"></a>');
+        this.$el.append('<p id="username" class style="font-weight:normal; font-size:3vh; color:white; position:fixed; top:0; right:0; margin-right:30px; margin-top:110px;"></p>');
+        this.$el.append('<p class="student-only" id="points" style="font-weight:normal; font-size:3vh; color:white; position:fixed; top:0; right:0; margin-right:30px; margin-top:135px;"></p>');
+        this.state_model = options.state_model;
+        this.listenTo(this.state_model, "change:open", this.update_user_status_visibility);
+    },
+
+    update_user_status_visibility: function(){
+        var points = window.statusModel.get("points");
+        var message = null;
+        var username_span = window.statusModel.get("username");
+
+        // only display the points if they are greater than zero, and the user is logged in
+        if (!window.statusModel.get("is_logged_in")) {
+            return;
+        }
+
+        // TODO-BLOCKER(jamalex): only include the hex user ID when Nalanda package is enabled
+        if (window.statusModel.has("user_id")) {
+            username_span += sprintf(" (%s)", window.statusModel.get("user_id").slice(0, 8));
+        }
+
+        message = sprintf(gettext("Points: %(points)d "), { points : points });
+        if (ds.store.show_store_link_once_points_earned) {
+            message += " | <a href='/store/'>Store!</a>";
+        }
+
+        if(this.state_model.get("open")){
+            this.$("#username").text(username_span);
+            this.$("#points").text(message);
+            this.$("#username").show();
+            this.$("#points").show();
         }else{
-            // this.$el.html('<a href="http://google.com"><img src="pic_mountain.jpg" style="float:left;"></a>');
+            this.$("#username").hide();
+            this.$("#points").hide();
         }
     }
 });
