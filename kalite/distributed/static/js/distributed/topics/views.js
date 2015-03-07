@@ -50,7 +50,7 @@ window.SidebarView = BaseView.extend({
 
     events: {
         "click .sidebar-tab": "toggle_sidebar",
-        "click .fade": "check_external_click",
+        "click .myfade": "check_external_click",
         "click .sidebar-back": "sidebar_back_one_level"
     },
 
@@ -188,12 +188,12 @@ window.SidebarView = BaseView.extend({
             this.sidebar.css({left: 0});
             this.resize_sidebar();
             this.sidebarTab.css({left: this.sidebar.width() + sidebarPanelPosition.left}).html('<span class="icon-circle-left"></span>');
-            this.$(".fade").show();
+            this.$(".myfade").show();
         } 
         else {
             this.sidebar.css({left: - this.width});
             this.sidebarTab.css({left: 0}).html('<span class="icon-circle-right"></span>');
-            this.$(".fade").hide();
+            this.$(".myfade").hide();
         }
 
         this.set_sidebar_back();
@@ -614,7 +614,7 @@ window.TopicContainerOuterView = BaseView.extend({
 });
 
 window.RecommandIconView = BaseView.extend({
-    el: ".fade",
+    el: ".myfade",
 
     initialize: function(options) {
         this.$el.append('<a id="recom_icon" href="http://google.com"><img src="/data/khan/images/recom_icon.png" style="position:fixed; bottom:0; right:0; margin-right:20px; margin-bottom:20px; height:20%;"></a>');
