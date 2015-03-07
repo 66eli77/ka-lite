@@ -617,13 +617,19 @@ window.RecommandIconView = BaseView.extend({
     el: ".fade",
 
     initialize: function(options) {
+        this.$el.append('<a id="recom_icon" href="http://google.com"><img src="/data/khan/images/recom_icon.png" style="position:fixed; bottom:0; right:0; margin-right:20px; margin-bottom:20px; height:20%;"></a>');
         this.state_model = options.state_model;
         this.listenTo(this.state_model, "change:open", this.update_recommand_icon_visibility);
     },
 
     update_recommand_icon_visibility: function(){
         if(this.state_model.get("open")){
-            this.$el.html('<a href="http://google.com"><img src="/data/khan/images/recom_icon.png" style="position: fixed; bottom: 0; right: 0; margin-right: 20px; margin-bottom: 20px; height: 20%;"></a>');
+            this.$(".recom_icon").show();
+        }else{
+            this.$(".recom_icon").hide();
+        }
+    }
+});
         }else{
             // this.$el.html('<a href="http://google.com"><img src="pic_mountain.jpg" style="float:left;"></a>');
         }
