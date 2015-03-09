@@ -46,6 +46,8 @@
 
     <link href="{% static "pdfjs/web/viewer.css" %}" rel="stylesheet" type="text/css">
 
+    <link href="{% static "css/distributed/immersive-ui.css" %}" rel="stylesheet" type="text/css">
+
 {% endblock headcss %}
 
 {% block headjs %}{{ block.super }}
@@ -119,6 +121,7 @@
     {% endif %}
 
     <script src="{% url 'handlebars_templates' module_name='topics' %}"></script>
+    <script src="{% url 'handlebars_templates' module_name='immersive_ui' %}"></script>
     <script src="{% static 'js/jquery.slimscroll.min.js' %}"></script>
     <script src="{% static 'js/distributed/topics/models.js' %}"></script>
     <script src="{% static 'js/distributed/topics/views.js' %}"></script>

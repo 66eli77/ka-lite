@@ -50,7 +50,7 @@ window.SidebarView = BaseView.extend({
 
     events: {
         "click .sidebar-tab": "toggle_sidebar",
-        "click .myfade": "check_external_click",
+        "click .fade": "check_external_click",
         "click .sidebar-back": "sidebar_back_one_level"
     },
 
@@ -192,12 +192,12 @@ window.SidebarView = BaseView.extend({
             this.sidebar.css({left: 0});
             this.resize_sidebar();
             this.sidebarTab.css({left: this.sidebar.width() + sidebarPanelPosition.left}).html('<span class="icon-circle-left"></span>');
-            this.$(".myfade").show();
+            this.$(".fade").show();
         } 
         else {
             this.sidebar.css({left: - this.width});
             this.sidebarTab.css({left: 0}).html('<span class="icon-circle-right"></span>');
-            this.$(".myfade").hide();
+            this.$(".fade").hide();
         }
 
         this.set_sidebar_back();
@@ -618,32 +618,50 @@ window.TopicContainerOuterView = BaseView.extend({
 });
 
 window.RecommandIconView = BaseView.extend({
-    el: ".myfade",
+    el: "#wrapper",
 
     initialize: function(options) {
-        this.$el.append('<a id="recom_icon" href="http://google.com"><img src="/data/khan/images/recom_icon.png" style="position:fixed; bottom:0; right:0; margin-right:20px; margin-bottom:20px; height:20%;"></a>');
+        this.$el.append('<a href="http://google.com"><img id="recom_icon" src="/data/khan/images/recom_icon.png" style="position:fixed; bottom:0; right:0; margin-right:20px; margin-bottom:20px; height:20%; z-index: 10000;"></a>');
         this.state_model = options.state_model;
         this.listenTo(this.state_model, "change:open", this.update_recommand_icon_visibility);
     },
 
     update_recommand_icon_visibility: function(){
         if(this.state_model.get("open")){
-            this.$(".recom_icon").show();
+            this.$("#recom_icon").show();
         }else{
-            this.$(".recom_icon").hide();
+            this.$("#recom_icon").hide();
         }
     }
 });
 
 window.UserStatusView = BaseView.extend({
-    el: ".myfade",
+    el: "#wrapper",
+    template: HB.template("immersive_ui/immersive-ui"),
+
+    events: {
+        "click .user-logo": "user_logo_clicked",
+    },
 
     initialize: function(options) {
-        this.$el.append('<a id="user_logo" href="http://google.com"><img src="/data/khan/images/user_logo.png" style="position:fixed; top:0; right:0; margin-right:30px; margin-top:20px; height:13%;"></a>');
-        this.$el.append('<p id="username" class style="font-weight:normal; font-size:3vh; color:white; position:fixed; top:0; right:0; margin-right:30px; margin-top:110px;"></p>');
-        this.$el.append('<p class="student-only" id="points" style="font-weight:normal; font-size:3vh; color:white; position:fixed; top:0; right:0; margin-right:30px; margin-top:135px;"></p>');
         this.state_model = options.state_model;
+        this.render();
         this.listenTo(this.state_model, "change:open", this.update_user_status_visibility);
+
+        $("#myprogress").click(function() {
+            window.location.href = $("#nav_progress").attr('href');
+            return false;
+        });
+
+        $("#mylogout").click(function() {
+            window.location.href = $("#nav_logout").attr('href');
+            return false;
+        });
+    },
+
+    render: function(){
+        this.$el.append(this.template());
+        return this;
     },
 
     update_user_status_visibility: function(){
@@ -657,9 +675,9 @@ window.UserStatusView = BaseView.extend({
         }
 
         // TODO-BLOCKER(jamalex): only include the hex user ID when Nalanda package is enabled
-        if (window.statusModel.has("user_id")) {
-            username_span += sprintf(" (%s)", window.statusModel.get("user_id").slice(0, 8));
-        }
+        // if (window.statusModel.has("user_id")) {
+        //     username_span += sprintf(" (%s)", window.statusModel.get("user_id").slice(0, 8));
+        // }
 
         message = sprintf(gettext("Points: %(points)d "), { points : points });
         if (ds.store.show_store_link_once_points_earned) {
@@ -667,13 +685,20 @@ window.UserStatusView = BaseView.extend({
         }
 
         if(this.state_model.get("open")){
-            this.$("#username").text(username_span);
-            this.$("#points").text(message);
-            this.$("#username").show();
-            this.$("#points").show();
+            $(".user-logo").show();
+            this.$(".username").text(username_span);
+            this.$(".points").text(message);
+            this.$(".username").show();
+            this.$(".points").show();
         }else{
-            this.$("#username").hide();
-            this.$("#points").hide();
+            $(".user-logo").hide();
+            this.$("#basicModal").modal('hide');
+            this.$(".username").hide();
+            this.$(".points").hide();
         }
+    },
+
+    user_logo_clicked: function(){
+        this.$("#basicModal").modal('show');
     }
 });
