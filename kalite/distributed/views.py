@@ -14,7 +14,7 @@ from django.contrib.auth.models import User
 from django.conf import settings; logging = settings.LOG
 from django.contrib import messages
 from django.core.urlresolvers import reverse
-from django.http import HttpResponseNotFound, HttpResponseRedirect, HttpResponseServerError
+from django.http import HttpResponseNotFound, HttpResponseRedirect, HttpResponseServerError, HttpResponse
 from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
@@ -28,6 +28,11 @@ from kalite.shared.decorators.auth import require_admin
 from securesync.api_client import BaseClient
 from securesync.models import Device, SyncSession, Zone
 
+import zipfile
+def read_image_from_zip(request, path, document_root):
+    archive = zipfile.ZipFile(document_root, 'r')
+    image_data = archive.read('khan/'+path)
+    return HttpResponse(image_data, mimetype="image")
 
 def check_setup_status(handler):
     """

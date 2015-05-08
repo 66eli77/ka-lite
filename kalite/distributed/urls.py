@@ -38,12 +38,14 @@ urlpatterns += patterns('',
     url(r'^securesync/', include(securesync.urls)),
 )
 
-
 # TODO: This should only be in DEBUG settings and the HTTP server should be
 # serving it otherwise. Cherrypy is currently serving it through modifications
 # in kalite/django_cherrypy_wsgiserver/cherrypyserver.py
 urlpatterns += patterns('',
-    url(r'^%s/khan(?P<path>.*)$' % settings.CONTENT_URL[1:], 'django.views.static.serve', {
+    url(r'^%skhan/(?P<path>.*)$' % settings.CONTENT_URL[1:], 'kalite.distributed.views.read_image_from_zip', {
+        'document_root': settings.CONTENT_ROOT_KHAN,
+    }),
+    url(r'^%skhan/(?P<path>.*)$' % settings.CONTENT_URL[1:], 'django.views.static.serve', {
         'document_root': settings.CONTENT_ROOT_KHAN,
     }),
     url(r'^%s(?P<path>.*)$' % settings.CONTENT_URL[1:], 'django.views.static.serve', {
