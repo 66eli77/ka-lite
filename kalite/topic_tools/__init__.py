@@ -32,6 +32,8 @@ from django.utils.translation import gettext as _
 from fle_utils.general import softload_json, json_ascii_decoder
 from kalite import i18n
 
+from kalite.main import models as main_models
+
 TOPICS_FILEPATHS = {
     settings.CHANNEL: os.path.join(settings.CHANNEL_DATA_PATH, "topics.json")
 }
@@ -139,7 +141,6 @@ def get_exercise_cache(force=False, language=settings.LANGUAGE_CODE):
             exercise_templates = os.listdir(exercise_root)
         else:
             exercise_templates = []
-        assessmentitems = get_assessment_item_cache()
         TEMPLATE_FILE_PATH = os.path.join(settings.KHAN_EXERCISES_DIRPATH, "exercises", "%s")
         for exercise in EXERCISES[language].values():
             exercise_file = exercise["name"] + ".html"
@@ -151,7 +152,7 @@ def get_exercise_cache(force=False, language=settings.LANGUAGE_CODE):
                 items = []
                 for item in exercise.get("all_assessment_items","[]"):
                     item = json.loads(item)
-                    if assessmentitems.get(item.get("id")):
+                    if get_assessment_item_data(request=None, assessment_item_id=item.get("id")):
                         items.append(item)
                         available = True
                 exercise["all_assessment_items"] = items
@@ -159,8 +160,11 @@ def get_exercise_cache(force=False, language=settings.LANGUAGE_CODE):
                 available = os.path.isfile(TEMPLATE_FILE_PATH % exercise_template)
 
                 # Get the language codes for exercise templates that exist
-                available_langs = set(["en"] + [lang_code for lang_code in exercise_templates if os.path.exists(os.path.join(exercise_root, lang_code, exercise_file))])
-
+                # Try to minimize the number of os.path.exists calls (since they're a bottleneck) by using the same
+                # precedence rules in i18n.select_best_available_languages
+                available_langs = [lang_code for lang_code in exercise_templates if language in lang_code or lang_code == settings.LANGUAGE_CODE]
+                available_langs = [lang_code for lang_code in available_langs if os.path.exists(os.path.join(exercise_root, lang_code, exercise_file))]
+                available_langs = set(["en"] + available_langs)
                 # Return the best available exercise template
                 exercise_lang = i18n.select_best_available_language(language, available_codes=available_langs)
 
@@ -185,14 +189,6 @@ def get_exercise_cache(force=False, language=settings.LANGUAGE_CODE):
 
     return EXERCISES[language]
 
-ASSESSMENT_ITEMS          = None
-CACHE_VARS.append("ASSESSMENT_ITEMS")
-def get_assessment_item_cache(force=False):
-    global ASSESSMENT_ITEMS, ASSESSMENT_ITEMS_FILEPATH
-    if ASSESSMENT_ITEMS is None or force:
-        ASSESSMENT_ITEMS = softload_json(ASSESSMENT_ITEMS_FILEPATH, logger=logging.debug, raises=False)
-
-    return ASSESSMENT_ITEMS
 
 def recurse_topic_tree_to_create_hierarchy(node, level_cache={}, hierarchy=[]):
     if not level_cache:
@@ -494,22 +490,24 @@ def get_exercise_data(request, exercise_id=None):
 
 
 def get_assessment_item_data(request, assessment_item_id=None):
-    assessment_item = get_assessment_item_cache().get(assessment_item_id, None)
-
-    if not assessment_item:
+    try:
+        assessment_item = main_models.AssessmentItem.objects.get(id=assessment_item_id)
+    except main_models.AssessmentItem.DoesNotExist:
         return None
 
-    # Enable internationalization for the assessment_items.
     try:
-
-        item_data = json.loads(assessment_item['item_data'], object_hook=json_ascii_decoder)
+        item_data = json.loads(assessment_item.item_data, object_hook=json_ascii_decoder)
         item_data = smart_translate_item_data(item_data)
-        assessment_item['item_data'] = json.dumps(item_data)
-
+        item_data = json.dumps(item_data)
     except KeyError as e:
         logging.error("Assessment item did not have the expected key %s. Assessment item: \n %s" % (e, assessment_item))
 
-    return assessment_item
+    #  Expects a dict
+    return {
+        "id": assessment_item.id,
+        "item_data": item_data,
+        "author_names": assessment_item.author_names,
+    }
 
 
 def smart_translate_item_data(item_data):
