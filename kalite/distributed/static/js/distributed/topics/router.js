@@ -31,18 +31,29 @@ TopicChannelRouter = Backbone.Router.extend({
 
     navigate_channel: function(channel, splat) {
         if (this.channel!==channel) {
-            this.control_view = new SidebarView({
-                channel: channel,
-                entity_key: "children",
-                entity_collection: TopicCollection
-            });
+            React.render(
+                <SidebarView 
+                    channel = {channel} 
+                    entity_key = "children" 
+                    entity_collection = {TopicCollection} />,
+                document.getElementById('sidebar-container')
+            );
             this.channel = channel;
         }
+        // if (this.channel!==channel) {
+        //     this.control_view = new SidebarView({
+        //         channel: channel,
+        //         entity_key: "children",
+        //         entity_collection: TopicCollection
+        //     });
+        //     this.channel = channel;
+        // }
         this.navigate_splat(splat);
     },
 
     add_slug: function(slug) {
         this.navigate(Backbone.history.getFragment() + slug + "/", {trigger: true});
+        console.log('sss: ', slug);
     },
 
     url_back: function() {
@@ -59,7 +70,7 @@ TopicChannelRouter = Backbone.Router.extend({
             splat += "/";
             this.navigate(Backbone.history.getFragment() + "/");
         }
-        this.control_view.navigate_paths(splat.split("/").slice(0,-1), this.set_page_title);
+        // this.control_view.navigate_paths(splat.split("/").slice(0,-1), this.set_page_title);
     },
 
     set_page_title: function(title) {

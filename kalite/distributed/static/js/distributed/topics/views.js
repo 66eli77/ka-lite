@@ -44,674 +44,92 @@ window.ContentAreaView = BaseView.extend({
 
 });
 
-window.SidebarView = BaseView.extend({
-    el: "#sidebar-container",
-    template: HB.template("topics/sidebar"),
-
-    events: {
-        "click .sidebar-tab": "toggle_sidebar",
-        "click .sidebar-fade": "check_external_click",
-        "click .sidebar-back": "sidebar_back_one_level"
-    },
-
-    initialize: function(options) {
-        var self = this;
-        var navbarCollapsed = true;
-
-        // Fancy algorithm to run a resize sidebar when window width 
-        // changes significantly (100px steps) to avoid unnecessary computation
-        var windowWidth = $(window).width();
-        $(window).on("resize", function() {
-            newWindowWidth = $(window).width();
-            if (Math.floor(newWindowWidth/100) != Math.floor(windowWidth/100)) {
-                self.resize_sidebar();
-                windowWidth = $(window).width();
-            }
-
-            if ($(window).width() > 768) {
-                self.show_sidebar_tab();
-            }
-
-            else {
-                if (navbarCollapsed) {
-                    self.show_sidebar_tab();
-                }
-                else {
-                    self.hide_sidebar_tab();   
-                }
-            }
-        });
-
-        $(".navbar-collapse").on("show.bs.collapse", function() {
-            self.hide_sidebar_tab();
-            navbarCollapsed = false;
-        }).on("hide.bs.collapse", function() {
-            self.show_sidebar_tab();
-            navbarCollapsed = true;
-        });
-
-        this.entity_key = options.entity_key;
-        this.entity_collection = options.entity_collection;
-
-        this.channel = options.channel;
-
-        this.state_model = new Backbone.Model({
-            open: false,
-            current_level: 0,
-            channel: this.channel
-        });
-
-        this.render();
-
-        this.listenTo(this.state_model, "change:open", this.update_sidebar_visibility);
-        this.listenTo(this.state_model, "change:current_level", this.resize_sidebar);
-    },
-
+var SidebarView = React.createClass({
     render: function() {
-        var self = this;
-
-        this.$el.html(this.template());
-
-        this.sidebar = this.$(".sidebar-panel");
-        this.sidebarTab = this.$(".sidebar-tab");
-        this.sidebarBack = this.$(".sidebar-back");
-
-        _.defer(function() {
-            self.show_sidebar();
-        });
-
-        this.topic_node_view = new TopicContainerOuterView({
-            channel: this.channel,
-            model: this.model,
-            entity_key: this.entity_key,
-            entity_collection: this.entity_collection,
-            state_model: this.state_model
-        });
-        this.listenTo(this.topic_node_view, "hideSidebar", this.hide_sidebar);
-        this.listenTo(this.topic_node_view, "showSidebar", this.show_sidebar);
-
-        this.$('.sidebar-content').append(this.topic_node_view.el);
-
-        this.set_sidebar_back();
-
-        return this;
-    },
-
-    resize_sidebar: function() {
-        if (this.state_model.get("open")) {
-            if ($(window).width() < 1260) {
-                this.resize_for_narrow();
-            } else {
-                this.resize_for_wide();
-            }
-        }
-    },
-
-    resize_for_narrow: _.debounce(function() {
-        var current_level = this.state_model.get("current_level");
-        var column_width = this.$(".topic-container-inner").width();
-        var last_column_width = this.$(".topic-container-inner:last-child").width();
-        // Hack to give the last child of .topic-container-inner to be 1.5 times the 
-        // width of their parents. Also, sidebar overflow out of the left side of screen
-        // is computed and set here.
-
-        // THE magic variable that controls number of visible panels
-        var numOfPanelsToShow = 4;
-
-        if ($(window).width() < 1120)
-            numOfPanelsToShow = 3;
-
-        if ($(window).width() < 920)
-            numOfPanelsToShow = 2;
-
-        if ($(window).width() < 620)
-            numOfPanelsToShow = 1;
-
-        // Used to get left value in number form
-        var sidebarPanelPosition = this.sidebar.position();
-        var sidebarPanelLeft = sidebarPanelPosition.left;
-
-        this.width = (current_level - 1) * column_width + last_column_width + 10;
-        this.sidebar.width(this.width);
-        var sidebarPanelNewLeft = -(column_width * (current_level - numOfPanelsToShow)) + this.sidebarBack.width();
-        if (sidebarPanelNewLeft > 0) sidebarPanelNewLeft = 0;
-
-        // Signature color flash (also hides a slight UI glitch)
-        var originalBackColor = this.sidebarBack.css('background-color');
-        this.sidebarBack.css('background-color', this.sidebarTab.css('background-color')).animate({'background-color': originalBackColor});
-        
-        var self = this;
-        this.sidebar.animate({"left": sidebarPanelNewLeft}, 115, function() {
-            self.set_sidebar_back();
-        });
-
-        this.sidebarTab.animate({left: this.sidebar.width() + sidebarPanelNewLeft}, 115);
-    }, 100),
-
-    // Pretty much the code for pre-back-button sidebar resize
-    resize_for_wide: _.debounce(function() {
-        var current_level = this.state_model.get("current_level");
-        var column_width = this.$(".topic-container-inner").width();
-        var last_column_width = 400;
-        
-        this.width = (current_level-1) * column_width + last_column_width + 10;
-        this.sidebar.width(this.width);
-        this.sidebar.css({left: 0});
-        this.sidebarTab.css({left: this.width});
-        
-        this.set_sidebar_back();
-    }, 100),
-
-    check_external_click: function(ev) {
-        if (this.state_model.get("open")) {
-            this.state_model.set("open", false);
-        }
-    },
-
-    toggle_sidebar: function(ev) {
-        this.state_model.set("open", !this.state_model.get("open"));
-
-        // TODO (rtibbles): Get render to only run after all listenTos have been bound and remove this.
-        if (ev !== undefined) {
-            ev.preventDefault();
-        }
-        return false;
-    },
-
-    update_sidebar_visibility: _.debounce(function() {
-        if (this.state_model.get("open")) {
-            // Used to get left value in number form
-            var sidebarPanelPosition = this.sidebar.position();
-            this.sidebar.css({left: 0});
-            this.resize_sidebar();
-            this.sidebarTab.css({left: this.sidebar.width() + sidebarPanelPosition.left}).html('<span class="icon-circle-left"></span>');
-            this.$(".sidebar-fade").show();
-        } else {
-            this.sidebar.css({left: - this.width});
-            this.sidebarTab.css({left: 0}).html('<span class="icon-circle-right"></span>');
-            this.$(".sidebar-fade").hide();
-        }
-
-        this.set_sidebar_back();
-    }, 100),
-
-    set_sidebar_back: function() {
-        if (!this.state_model.get("open")) {
-            this.sidebarBack.offset({left: -(this.sidebarBack.width())});
-            
-            this.sidebarBack.hover(
-            function() {
-                $(this).addClass("sidebar-back-hover");
-            },
-            function() {
-                $(this).removeClass("sidebar-back-hover");
-            });
-
-            return;
-        }
-
-        // Used to get left value in number form
-        var sidebarPanelPosition = this.sidebar.position();
-        if (sidebarPanelPosition.left != 0) {
-            this.sidebarBack.offset({left: 0});
-        }
-        else {
-            this.sidebarBack.offset({left: -(this.sidebarBack.width())});
-        }
-    },
-
-    sidebar_back_one_level: function() {
-        this.topic_node_view.back_to_parent();
-    },
-
-    show_sidebar: function() {
-        this.state_model.set("open", true);
-    },
-
-    hide_sidebar: function() {
-        this.state_model.set("open", false);
-    },
-
-    show_sidebar_tab: function() {
-        this.sidebarTab.fadeIn(115);
-    },
-
-    hide_sidebar_tab: function() {
-        this.sidebarTab.fadeOut(115);
-    },
-
-    navigate_paths: function(paths, callback) {
-        // Allow callback here to let the 'title' of the node be returned to the router
-        // This will allow the title of the page to be updated during navigation events
-        this.topic_node_view.defer_navigate_paths(paths, callback);
+        return (
+            <div>
+                <TopicContainerOuterView 
+                    channel = {this.props.channel}
+                    entity_key = {this.props.entity_key}
+                    entity_collection = {this.props.entity_collection}
+                    state_model = {this.state_model} />
+            </div>
+        );
     }
-
 });
 
-window.TopicContainerInnerView = BaseView.extend({
-    className: "topic-container-inner",
-    template: HB.template("topics/sidebar-content"),
-
-    initialize: function(options) {
-
-        _.bindAll(this);
-
-        var self = this;
-
-        this.state_model = options.state_model;
-        this.entity_key = options.entity_key;
-        this.entity_collection = options.entity_collection;
-        this.level = options.level;
-        this._entry_views = [];
-        this.has_parent = options.has_parent;
-
-        this.collection = new this.entity_collection({parent: this.model.get("id"), channel: this.state_model.get("channel")});
-
-        this.collection.fetch().then(this.add_all_entries);
-
-        this.state_model.set("current_level", options.level);
-
-        // resize the scrollable part of sidebar to the page height
-        $(window).resize(self.window_resize_callback);
-
-        // When scrolling, increase the height of the element
-        // until it fills up the sidebar panel
-        $(window).scroll(self.window_scroll_callback);
-    },
-
-    window_scroll_callback: _.throttle(function() {
-        var sidebarHeight = $(".sidebar-panel").height();
-        var deltaHeight = $(window).scrollTop() + self.$(".slimScrollDiv, .sidebar").height();
-        var height = Math.min(sidebarHeight, deltaHeight);
-        self.$(".slimScrollDiv, .sidebar").height(height);
-    }, 200),
-
-    window_resize_callback: _.throttle(function() {
-        var height = $(window).height();
-        self.$(".slimScrollDiv, .sidebar").height(height);
-    }, 200),
-
-    render: function() {
-        var self = this;
-
-        this.$el.html(this.template(this.model.attributes));
-
-        this.$(".sidebar").slimScroll({
-            color: "#083505",
-            opacity: 0.2,
-            size: "6px",
-            distance: "1px",
-            alwaysVisible: true
-        });
-
-        // Ensure these are called once in order to get the right size initially.
-        _.defer( function() {
-            self.window_resize_callback();
-            self.window_scroll_callback();
-        });
-
-        return this;
-    },
-
-    add_new_entry: function(entry) {
-        var view = new SidebarEntryView({model: entry});
-        this.listenTo(view, "hideSidebar", this.hide_sidebar);
-        this.listenTo(view, "showSidebar", this.show_sidebar);
-        this._entry_views.push(view);
-        this.$(".sidebar").append(view.render().$el);
-        if (window.statusModel.get("is_logged_in")) {
-            this.load_entry_progress();
-        }
-    },
-
-    add_all_entries: function() {
-        this.render();
-        this.collection.forEach(this.add_new_entry, this);
-    },
-
-    show: function() {
-        this.$el.show();
-    },
-
-    hide: function() {
-        this.$el.hide();
-    },
-
-    hide_sidebar: function() {
-        this.trigger("hideSidebar");
-    },
-
-    show_sidebar: function() {
-        this.trigger("showSidebar");
-    },
-
-    backToParent: function(ev) {
-        this.trigger('back_button_clicked', this.model);
-    },
-
-    deferred_node_by_slug: function(slug, callback) {
-        // Convenience method to return a node by a passed in slug
-        if (this.collection.loaded == true) {
-            this.node_by_slug(slug, callback);
-        } else {
-            var self = this;
-            this.listenToOnce(this.collection, "sync", function() {self.node_by_slug(slug, callback);});
-        }
-    },
-
-    node_by_slug: function(slug, callback) {
-        callback(this.collection.findWhere({slug: slug}));
-    },
-
-    close: function() {
-        _.each(this._entry_views, function(view) {
-            view.model.set("active", false);
-        });
-        this.remove();
-    },
-
-    load_entry_progress: _.debounce(function() {
-
-        var self = this;
-
-        // load progress data for all videos
-        var video_ids = $.map(this.$(".icon-Video[data-content-id]"), function(el) { return $(el).data("content-id"); });
-        if (video_ids.length > 0) {
-            videologs = new VideoLogCollection([], {content_ids: video_ids});
-            videologs.fetch().then(function() {
-                videologs.models.forEach(function(model) {
-                    var newClass = model.get("complete") ? "complete" : "partial";
-                    self.$("[data-video-id='" + model.get("video_id") + "']").removeClass("complete partial").addClass(newClass);
-                });
-            });
-        }
-
-        // load progress data for all exercises
-        var exercise_ids = $.map(this.$(".icon-Exercise[data-content-id]"), function(el) { return $(el).data("content-id"); });
-        if (exercise_ids.length > 0) {
-            exerciselogs = new ExerciseLogCollection([], {exercise_ids: exercise_ids});
-            exerciselogs.fetch()
-                .then(function() {
-                    exerciselogs.models.forEach(function(model) {
-                        var newClass = model.get("complete") ? "complete" : "partial";
-                        self.$("[data-exercise-id='" + model.get("exercise_id") + "']").removeClass("complete partial").addClass(newClass);
-                    });
-                });
-        }
-
-        // load progress data for quiz; TODO(jamalex): since this is RESTful anyway, perhaps use a model here?
-        var quiz_ids = $.map(this.$("[data-quiz-id]"), function(el) { return $(el).data("quiz-id"); });
-        if (quiz_ids.length > 0) {
-            // TODO(jamalex): for now, we just hardcode the quiz id as being the playlist id, since we don't have a good independent quiz id
-            var quiz_id = this.model.get("id");
-            doRequest("/api/playlists/quizlog/?user=" + statusModel.get("user_id") + "&quiz=" + quiz_id)
-                .success(function(data) {
-                    data.objects.forEach(function(ind, quiz) {
-                        var newClass = quiz.complete ? "complete" : "partial";
-                        // TODO(jamalex): see above; just assume we only have 1 quiz
-                        self.$("[data-quiz-id]").removeClass("complete partial").addClass(newClass);
-                    });
-                });
-        }
-
-        // load progress data for all content
-        var content_ids = $.map(this.$(".sidebar-icon:not(.icon-Exercise, .icon-Video, .icon-Topic)"), function(el) { return $(el).data("content-id"); });
-        if (content_ids.length > 0) {
-            contentlogs = new ContentLogCollection([], {content_ids: content_ids});
-            contentlogs.fetch()
-                .then(function() {
-                    contentlogs.models.forEach(function(model) {
-                        var newClass = model.get("complete") ? "complete" : "partial";
-                        self.$("[data-content-id='" + content.get("content_id") + "']").removeClass("complete partial").addClass(newClass);
-                    });
-                });
-        }
-
-    }, 100)
-
-});
-
-window.SidebarEntryView = BaseView.extend({
-
-    tagName: "li",
-
-    template: HB.template("topics/sidebar-entry"),
-
-    events: {
-        "click": "clicked"
-    },
-
-    initialize: function() {
-
-        _.bindAll(this);
-
-        this.listenTo(this.model, "change", this.render);
-
-    },
-
-    render: function() {
-        this.$el.html(this.template(this.model.attributes));
-        return this;
-    },
-
-    clicked: function(ev) {
-        ev.preventDefault();
-        if (!this.model.get("active")) {
-            window.channel_router.navigate(this.model.get("path"), {trigger: true});
-        } else if (this.model.get("kind") !== "Topic") {
-            this.trigger("hideSidebar");
-        }
-        return false;
-    }
-
-});
-
-
-window.TopicContainerOuterView = BaseView.extend({
-
-    initialize: function(options) {
-
-        this.render = _.bind(this.render, this);
-
-        this.state_model = options.state_model;
-
-        this.entity_key = options.entity_key;
-        this.entity_collection = options.entity_collection;
-
+var TopicContainerOuterView = React.createClass({
+    getInitialState: function() {
         this.model = new TopicNode({"id": "root", "title": "Khan"});
-
-        this.inner_views = [];
-        this.render();
-        this.content_view = new ContentAreaView({
-            el: "#content-area"
-        });
-
+        var data = {
+            model: this.model,
+            entity_key: this.props.entity_key,
+            entity_collection: this.props.entity_collection,
+            channel: this.props.channel,
+            state_model: this.props.state_model,
+        };
+        return {data};
     },
 
     render: function() {
-        this.show_new_topic(this.model);
-        this.trigger("render_complete");
+        return (
+            <TopicContainerInnerView data={this.state.data}/>
+        );
+    }
+});
+
+var TopicContainerInnerView = React.createClass({
+    getInitialState: function() {
+        var data = new this.props.data.entity_collection({parent: this.props.data.model.get("id"), channel: this.props.data.channel});
+        data.fetch().then(this.update);
+        // console.log("fffff: ", data);
+        return {data}
     },
 
-    show_new_topic: function(node) {
-
-        var new_topic = this.add_new_topic_view(node);
-
-        this.$el.append(new_topic.el);
-
-        this.trigger("inner_view_added");
-
-        // Listeners
-        this.listenTo(new_topic, 'back_button_clicked', this.back_to_parent);
-        this.listenTo(new_topic, 'hideSidebar', this.hide_sidebar);
-        this.listenTo(new_topic, 'showSidebar', this.show_sidebar);
+    update: function(){
+        this.forceUpdate();
     },
 
-    add_new_topic_view: function(node) {
-
-        this.state_model.set("current_level", this.state_model.get("current_level") + 1);
-
-        var data = {
-            model: node,
-            has_parent: this.inner_views.length >= 1,
-            entity_key: this.entity_key,
-            entity_collection: this.entity_collection,
-            state_model: this.state_model,
-            level: this.state_model.get("current_level")
-        };
-
-        var new_topic = new TopicContainerInnerView(data);
-
-        this.inner_views.unshift(new_topic);
-
-        this.trigger("length_" + this.inner_views.length);
-
-        return new_topic;
+    componentDidMount: function() {
+        this.state.data.on('change', function() {
+            this.forceUpdate();
+        }.bind(this));
     },
 
-    defer_navigate_paths: function(paths, callback) {
-        if (this.inner_views.length === 0){
-            var self = this;
-            this.listenToOnce(this, "render_complete", function() {self.navigate_paths(paths, callback);});
-        } else {
-            this.navigate_paths(paths, callback);
-        }
-    },
+    render: function() {
+        // console.log("llll: ", this.state.data.models);
+        var entries = this.state.data.models;
+        // setTimeout(function(){
+        // console.log("aaaaa: ", entries.length)
+        // }, 1000);
+        console.log("llll: ", entries.length);
+        // for ()
 
-    navigate_paths: function(paths, callback) {
-
-        var self = this;
-
-        var check_views = [];
-        for (var i = this.inner_views.length - 2; i >=0; i--) {
-            check_views.push(this.inner_views[i]);
-        }
-        // Should only ever remove a bunch of inner_views once during the whole iteration
-        var pruned = false;
-        for (i = 0; i < paths.length; i++) {
-            var check_view = check_views[i];
-            if (paths[i]!=="") {
-                if (check_view!==undefined) {
-                    if (check_view.model.get("slug")==paths[i]) {
-                        continue;
-                    } else {
-                        check_view.model.set("active", false);
-                        if (!pruned) {
-                            this.remove_topic_views(check_views.length - i);
-                            pruned = true;
-                        }
-                    }
-                }
-                this.defer_add_topic(paths[i], i);
-            } else if (!pruned) {
-                if (check_view!==undefined) {
-                    check_view.model.set("active", false);
-                    this.remove_topic_views(check_views.length - i);
-                }
-            }
-        }
-        if (callback) {
-            this.stopListening(this, "inner_view_added");
-
-            this.listenTo(this, "inner_view_added", function() {
-                callback(self.inner_views[0].model.get("title"));
-            });
-        }
-    },
-
-    defer_add_topic: function(path, view_length) {
-        var self = this;
-        if (this.inner_views.length==view_length + 1) {
-            this.add_topic_from_inner_view(path);
-        } else {
-            this.listenToOnce(this, "length_" + (view_length + 1), function() {self.add_topic_from_inner_view(path);});
-        }
-    },
-
-    add_topic_from_inner_view: function(path) {
-        var self = this;
-
-        this.inner_views[0].deferred_node_by_slug(path, function(node){
-            if (node!==undefined) {
-                if (node.get("kind")==="Topic") {
-                    self.show_new_topic(node);
-                } else {
-                    self.entry_requested(node);
-                }
-                node.set("active", true);
-            }
+        var SidebarNodes = this.state.data.models.map(function (entry) {
+            console.log("ttt: ", entry.attributes.title);
+            return (
+                <div>
+                    {entry.attributes.title}
+                </div>
+            );
         });
-    },
+        console.log("ccc: ", SidebarNodes);
+        return (
+            <div className="EntryList">
+                {SidebarNodes}
+            </div>
+        );
+    }
+});
 
-    remove_topic_views: function(number) {
-        for (var i=0; i < number; i++) {
-            if (this.inner_views[0]) {
-                this.inner_views[0].model.set("active", false);
-                if (_.isFunction(this.inner_views[0].close)) {
-                    this.inner_views[0].close();
-                } else {
-                    this.inner_views[0].remove();
-                }
-                this.inner_views.shift();
-            }
-        }
-        if (this.state_model.get("content_displayed")) {
-            number--;
-            this.state_model.set("content_displayed", false);
-        }
-        this.state_model.set("current_level", this.state_model.get("current_level") - number);
-        this.show_sidebar();
-    },
-
-    back_to_parent: function() {
-        this.remove_topic_views(1);
-        window.channel_router.url_back();
-    },
-
-    entry_requested: function(entry) {
-        var kind = entry.get("kind") || entry.get("entity_kind");
-        var id = entry.get("id") || entry.get("entity_id");
-
-        var view;
-
-        switch(kind) {
-
-            case "Exercise":
-                view = new ExercisePracticeView({
-                    exercise_id: id,
-                    context_type: "playlist",
-                    context_id: this.model.get("id")
-                });
-                this.content_view.show_view(view);
-                break;
-
-            case "Quiz":
-                view = new ExerciseQuizView({
-                    quiz_model: new QuizDataModel({entry: entry}),
-                    context_id: this.model.get("id") // for now, just use the playlist ID as the quiz context_id
-                });
-                this.content_view.show_view(view);
-                break;
-
-            default:
-                view = new ContentWrapperView({
-                    id: id,
-                    context_id: this.model.get("id")
-                });
-                this.content_view.show_view(view);
-                break;
-        }
-        this.content_view.model = entry;
-        this.inner_views.unshift(this.content_view);
-        this.state_model.set("content_displayed", true);
-        this.hide_sidebar();
-    },
-
-    hide_sidebar: function() {
-        this.trigger("hideSidebar");
-    },
-
-    show_sidebar: function() {
-        this.trigger("showSidebar");
+var SidebarEntryView = React.createClass({
+    render: function() {
+        return (
+            <li>
+                <span>
+                    {this.props.data.model.title}
+                </span>
+            </li>
+        );
     }
 });
