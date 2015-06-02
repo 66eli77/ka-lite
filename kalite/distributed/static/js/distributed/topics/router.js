@@ -30,30 +30,29 @@ TopicChannelRouter = Backbone.Router.extend({
     },
 
     navigate_channel: function(channel, splat) {
+        // console.log("rrrrooot", channel, " / ", splat);
         if (this.channel!==channel) {
+            // React.render(
+            //     <SidebarView 
+            //         channel = {channel} 
+            //         entity_key = "children" 
+            //         entity_collection = {TopicCollection} />,
+            //     document.getElementById('sidebar-container')
+            // );
             React.render(
-                <SidebarView 
-                    channel = {channel} 
-                    entity_key = "children" 
-                    entity_collection = {TopicCollection} />,
+                React.createElement(SidebarView, {
+                    channel: channel, 
+                    entity_key: "children", 
+                    entity_collection: TopicCollection}),
                 document.getElementById('sidebar-container')
             );
             this.channel = channel;
         }
-        // if (this.channel!==channel) {
-        //     this.control_view = new SidebarView({
-        //         channel: channel,
-        //         entity_key: "children",
-        //         entity_collection: TopicCollection
-        //     });
-        //     this.channel = channel;
-        // }
         this.navigate_splat(splat);
     },
 
     add_slug: function(slug) {
         this.navigate(Backbone.history.getFragment() + slug + "/", {trigger: true});
-        console.log('sss: ', slug);
     },
 
     url_back: function() {
@@ -65,11 +64,18 @@ TopicChannelRouter = Backbone.Router.extend({
     },
 
     navigate_splat: function(splat) {
-        splat = splat || "/";
+        if(splat){
+            splat = splat || "/";
+            splat = 'root/' + splat;
+        }else{
+            splat = 'root/';
+        }
         if (splat.indexOf("/", splat.length - 1)==-1) {
             splat += "/";
             this.navigate(Backbone.history.getFragment() + "/");
         }
+        var selected_path = splat.split("/").slice(0,-1);
+        sidebar_columns_model.set('columns', selected_path);
         // this.control_view.navigate_paths(splat.split("/").slice(0,-1), this.set_page_title);
     },
 
